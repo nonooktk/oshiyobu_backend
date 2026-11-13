@@ -38,3 +38,21 @@ export {
 export type { Condition, ConditionInput, CourseOffer, Uplift, UpliftRow } from './calc/condition';
 export { demandOf, levelOf, shortfallOf } from './calc/demand';
 export type { Demand } from './calc/demand';
+export {
+  achievementPct,
+  barFill,
+  crossedMilestone,
+  displayedCount,
+  minPeopleGapYen,
+  peopleLeft,
+  supportStatus,
+} from './calc/meter';
+export type { MeterState, SupportState, SupportStatus } from './calc/meter';
+export { MAX_COST_YEN, parseCost, parseMinPeople } from './calc/parse';
+export type { ParseResult } from './calc/parse';
+export { canApply, depShort, mainShort, nextDepositTarget, restParts } from './calc/course';
+export type { RestPart } from './calc/course';
+export { REG_MAX, colorStep, metricValues, radiusOf } from './calc/map';
+export type { ColorStep } from './calc/map';
+export { areaFor } from './calc/area';
+export type { AreaCity, AreaPref } from './calc/area';
