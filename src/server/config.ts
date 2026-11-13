@@ -21,6 +21,11 @@ export const DEFAULT_PORT = 8787;
 export const DEFAULT_DATA_DIR = './data';
 /** 合言葉の最小の長さ（文字）。これより短いと reset を無効にする（設計 D-15）。 */
 export const MIN_PASSPHRASE_LENGTH = 12;
+
+/** 合言葉として使える長さか（文字＝コードポイントで数える）。 */
+export function isUsablePassphrase(value: string): boolean {
+  return Array.from(value).length >= MIN_PASSPHRASE_LENGTH;
+}
 /** NODE_ENV が未設定のときだけ許す、開発の画面の origin。 */
 const DEV_ORIGIN = 'http://localhost:5173';
 
@@ -92,7 +97,7 @@ export function loadConfig(env: Env): { config: ServerConfig; warnings: ConfigWa
   let presenterPassphrase: string | undefined;
   if (passphrase === undefined) {
     warnings.push({ code: 'passphrase_not_configured' });
-  } else if (Array.from(passphrase).length < MIN_PASSPHRASE_LENGTH) {
+  } else if (!isUsablePassphrase(passphrase)) {
     warnings.push({ code: 'passphrase_too_short' });
   } else {
     presenterPassphrase = passphrase;
