@@ -108,6 +108,18 @@ export class MeterStore {
   }
 
   /**
+   * この端末を、新しく数えられるか（すでに数えた端末の再送、または、上限に届いていない）。状態は変えない。
+   * 上限に届いたあとの連打で、端末ごとの上限の記録（メモリ）を増やさないために、数える前に確かめる。
+   */
+  canCount(pid: PerformanceId, deviceHash: string): boolean {
+    const ids = this.performances.get(pid);
+    return (
+      ids?.has(deviceHash) === true ||
+      ((ids?.size ?? 0) < PER_PERFORMANCE_LIMIT && this.totalJoined() < TOTAL_LIMIT)
+    );
+  }
+
+  /**
    * 申し込みを 1 件数える。同じ公演で同じ端末（ハッシュ）は 1 回だけ（counted: false で件数は増えない）。
    * すでに数えた端末の再送は、上限に届いていても受ける（冪等）。新しい端末は、上限に届いていたら cap_reached。
    */
@@ -116,9 +128,8 @@ export class MeterStore {
     if (ids?.has(deviceHash) === true) {
       return { status: 'ok', counted: false, joined: ids.size };
     }
-    const joined = ids?.size ?? 0;
-    if (joined >= PER_PERFORMANCE_LIMIT || this.totalJoined() >= TOTAL_LIMIT) {
-      return { status: 'cap_reached', joined };
+    if (!this.canCount(pid, deviceHash)) {
+      return { status: 'cap_reached', joined: ids?.size ?? 0 };
     }
     const target = ids ?? new Set<string>();
     target.add(deviceHash);

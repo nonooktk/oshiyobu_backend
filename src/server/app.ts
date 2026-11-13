@@ -171,8 +171,13 @@ export function createApp(deps: AppDeps): Hono {
     if (deviceId === null) {
       return c.json(errorBody('invalid_body'), 400);
     }
-    // 上限は端末の番号ごとだけ。接続元（IP）は見ない・数えない（同じ Wi-Fi の聞き手を弾かないため。N-24）。
     const deviceHash = hashDeviceId(deviceId);
+    // 公演・全体の上限に届いていて、新しい端末なら、連打の記録を取る前に断る（番号を作り替えて送り続けても、メモリが増えない）。
+    if (!store.canCount(pid, deviceHash)) {
+      logger.warn('join_cap_reached', { performanceId: pid, joined: store.get(pid).joined });
+      return c.json(errorBody('cap_reached', { joined: store.get(pid).joined }), 409);
+    }
+    // 連打の上限は端末の番号ごとだけ。接続元（IP）は見ない・数えない（同じ Wi-Fi の聞き手を弾かないため。N-24）。
     const hit = limiter.hit(deviceHash);
     if (!hit.allowed) {
       c.header('Retry-After', String(hit.retryAfterSec));

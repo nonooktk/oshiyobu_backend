@@ -7,6 +7,7 @@ import {
   parseResetResponse,
 } from '../../src/core';
 import { createApp } from '../../src/server/app';
+import { hashDeviceId } from '../../src/server/hash';
 import { PER_PERFORMANCE_LIMIT } from '../../src/server/store';
 import { createJsonLogger } from '../../src/server/logger';
 import { SlidingWindowLimiter } from '../../src/server/ratelimit';
@@ -67,6 +68,18 @@ describe('I-36 / I-129: 3 本の応答が core の型どおり。joined は申�
     const h = makeHarness();
     await h.join(PID);
     expect(parseMeterResponse(await json(await h.get('krs48:FUK-012')))?.joined).toBe(0);
+  });
+});
+
+describe('公演 ID の書き方（コロンは、そのままでも、%3A に符号化しても同じ公演）', () => {
+  it('encodeURIComponent した公演 ID（tech0%3Acbox）でも、取得・申し込みができる', async () => {
+    const h = makeHarness();
+    const encoded = encodeURIComponent(PID);
+    expect(encoded).toBe('tech0%3Acbox');
+    expect((await h.get(encoded)).status).toBe(200);
+    const joined = parseJoinResponse(await json(await h.join(encoded)));
+    expect(joined).toMatchObject({ performanceId: PID, joined: 1, counted: true });
+    expect(parseMeterResponse(await json(await h.get(PID)))?.joined).toBe(1);
   });
 });
 
@@ -402,6 +415,21 @@ describe('I-42: 上限（公演 500・全体 1,500）。409 cap_reached', () => 
   });
 });
 
+describe('上限に届いたあとの連打で、メモリが増え続けない（端末の番号を作り替えて送り続ける場合）', () => {
+  it('公演が上限（500）に届いたあと、新しい端末の番号で 2,000 回送っても、すべて 409。上限の記録（メモリ）は増えない', async () => {
+    const h = makeHarness();
+    for (let i = 0; i < PER_PERFORMANCE_LIMIT; i++) await h.join(PID, randomDeviceId());
+    const sizeAtCap = h.limiter.size();
+    let notConflict = 0;
+    for (let i = 0; i < 2000; i++) {
+      if ((await h.join(PID, randomDeviceId())).status !== 409) notConflict++;
+    }
+    expect(notConflict).toBe(0);
+    expect(h.limiter.size()).toBe(sizeAtCap);
+    expect(h.store.get(PID).joined).toBe(500);
+  });
+});
+
 describe('I-43: CORS（完全一致。画面の origin だけ。D-16）', () => {
   const allowed = 'https://app.example.test';
 
@@ -555,7 +583,7 @@ describe('I-44: 応答は許可リストの項目だけ。全応答に Server-Ti
       ip,
       wrongKey,
       'hidden-body-marker',
-      h.store.snapshot().performances[PID]?.ids[0] ?? '#',
+      hashDeviceId(id), // 端末の番号のハッシュ（reset で保存の中身が空になる前の値を、ここで計算する）
     ]) {
       expect(text).not.toContain(bad);
     }

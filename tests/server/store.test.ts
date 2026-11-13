@@ -81,6 +81,36 @@ describe('上限（公演ごと 500・全体 1,500。D-14・I-42）', () => {
   });
 });
 
+describe('新しく数えられるか canCount（上限の手前の確認。連打の記録を増やさないため）', () => {
+  it('上限に届いていなければ、新しい端末も数えられる', () => {
+    const { store } = makeStore();
+    expect(store.canCount('tech0:cbox', hex16(1))).toBe(true);
+  });
+
+  it('公演の上限に届いたら、新しい端末は数えられない。すでに数えた端末は、数えられる（再送は冪等）', () => {
+    const { store } = makeStore();
+    for (let i = 0; i < PER_PERFORMANCE_LIMIT; i++) store.join('tech0:cbox', hex16(i));
+    expect(store.canCount('tech0:cbox', hex16(9999))).toBe(false);
+    expect(store.canCount('tech0:cbox', hex16(0))).toBe(true);
+    expect(store.canCount('krs48:FUK-012', hex16(9999))).toBe(true); // 別の公演は、まだ数えられる
+  });
+
+  it('全体の上限に届いたら、別の公演でも、新しい端末は数えられない', () => {
+    const { store } = makeStore();
+    for (const pid of ['tech0:cbox', 'krs48:FUK-012', 'riji:cbox'] as const) {
+      for (let i = 0; i < PER_PERFORMANCE_LIMIT; i++) store.join(pid, hex16(i));
+    }
+    expect(store.canCount('terao:KGS-001', hex16(9999))).toBe(false);
+  });
+
+  it('呼んでも、状態は変わらない（onChange を呼ばない）', () => {
+    const { store, onChange } = makeStore();
+    store.canCount('tech0:cbox', hex16(1));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(store.totalJoined()).toBe(0);
+  });
+});
+
 describe('reset（発表者が初めに戻す。D-15）', () => {
   it('全公演の件数と、数えた端末の番号を空にする。resetAt を返し、get が同じ値を返す', () => {
     const { store } = makeStore(Date.UTC(2026, 10, 20, 0, 30, 0, 0));
