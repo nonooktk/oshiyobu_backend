@@ -1,0 +1,31 @@
+{
+  "name": "oshiyobu_backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "OSHIYOBU（デモ）の計算・デモデータ・人物 15 通り・共有メーターの小さな API。すべて架空のデモ用データです。",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write src tests scripts eslint.config.js vitest.config.ts",
+    "format:check": "prettier --check src tests scripts eslint.config.js vitest.config.ts",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "esbuild": "0.28.2",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.14.0",
+    "prettier": "3.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vitest": "4.1.12"
+  }
+}

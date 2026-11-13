@@ -19,11 +19,36 @@ OSHIYOBU（推しを地元に呼ぶ仕組み）のデモの、**計算・デモ�
 
 - 作業の決まりは [CLAUDE.md](CLAUDE.md) にあります。Claude Code はこのファイルを自動で読みます。
 - Git・GitHub の認証・Claude Code の導入、リポジトリの取得、Claude Code の起動までの手順は、対になるリポジトリの [docs/はじめに.md](https://github.com/nonooktk/oshiyobu_frontend/blob/main/docs/%E3%81%AF%E3%81%98%E3%82%81%E3%81%AB.md) と同じです。リポジトリの名前だけ、`oshiyobu_backend` に読み替えてください。
-- このリポジトリの環境の作り方と、テストの実行コマンドは、技術スタックの決定後に追記します。
+- 環境の作り方と、検査・テストの実行コマンドは、次の「環境とコマンド」のとおりです。
+
+## 技術スタック
+
+- TypeScript（strict）・Node 22 LTS・npm。テストは Vitest、整形は Prettier、lint は ESLint（型を見る規則）。
+- 計算とデータ（`src/core/`）は、ブラウザでも Node でも動く純粋な TypeScript で、外部の依存を持ちません。frontend は、この `src/core/` を、ソースのまま固定したコミットで取り込みます。
+- 共有メーターの API（`src/server/`。Hono）は、DB を使いません（メモリ + JSON の保存ファイル 1 つ）。API の実装と配備は、これから足します。配備先と手順は、決まりしだいここに追記します。
+
+## 環境とコマンド
+
+Node 22 以上を入れて、リポジトリのフォルダで実行します。
+
+```bash
+npm ci               # 依存を入れる（package-lock.json のとおり）
+npm run verify       # lint → 整形の確認 → 型 → テスト → ビルドを順に実行（CI の job「verify」と同じ）
+```
+
+1 つずつ実行するときは、次のコマンドを使います。
+
+| コマンド | 内容 |
+| --- | --- |
+| `npm run lint` | ESLint。`src/core/` には、外部への依存・Node だけの API・呼ぶたびに値が変わる関数を禁止する規則もある |
+| `npm run format:check` / `npm run format` | Prettier の確認 / 整形 |
+| `npm run typecheck` | 型の検査。`tsconfig.core.json`（`src/core/` だけ。lib は ES2022 のみ・types は空）と、全体（`tsconfig.json`）の 2 つ |
+| `npm test` | Vitest（単体テスト・ゴールデンテスト） |
+| `npm run build` | `src/core/` が外部に依存せず、ブラウザ向けに 1 つに束ねられることの確認（`dist/core.mjs`。Git 管理外） |
 
 ## 今の状態
 
-技術スタックは、設計の確定後に決めます。決まるまでは、コードも依存の定義ファイルもありません。DB を使うかどうかと、API の配備先も、設計の確定後に追記します。
+骨組み（B-0）と、計算・データ・人物 15 通り・入力の検査・共有メーターの応答の検査（`src/core/`。B-1）まで入っています。共有メーターの API（`src/server/`）と、配備の仕組み・負荷の試験は、これから足します。
 
 ## 構成
 
@@ -31,7 +56,13 @@ OSHIYOBU（推しを地元に呼ぶ仕組み）のデモの、**計算・デモ�
 .
 ├── CLAUDE.md             作業の決まり（Claude Code が読む）
 ├── README.md             このファイル
+├── src/
+│   └── core/             計算・デモデータ・人物 15 通り・入力の検査・API の応答の型（純粋な TypeScript。frontend が取り込む）
+├── tests/                テスト（src/ と同じ並び）
+├── scripts/              検査・ビルドのスクリプト（Node。OS に依存させない）
+├── tsconfig*.json        型の設定（tsconfig.core.json は core 専用）
+├── eslint.config.js      lint の設定
 ├── .claude/
 │   └── settings.json     Claude Code に許さない操作の設定（frontend と同じ）
-└── .github/              PR のひな形・レビュー担当・依存の更新設定
+└── .github/              PR のひな形・レビュー担当・依存の更新設定・CI（workflows/ci.yml）
 ```
