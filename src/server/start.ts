@@ -35,7 +35,7 @@ export interface RunningServer {
   readonly app: Hono;
   readonly store: MeterStore;
   readonly server: Server;
-  /** 終了の合図: 保存を待たずに書き、接続を閉じる。 */
+  /** 終了の合図: 新しい接続を止め、つながっている要求が済んだら（最長 3 秒）、保存を待たずに書く。 */
   close(): Promise<void>;
 }
 
@@ -107,7 +107,7 @@ export async function startServer(options: StartOptions): Promise<RunningServer>
     store,
     server,
     async close() {
-      await writer?.flush();
+      // 先に新しい接続を止め、つながっている要求が済んだあとに、保存を書く（終わりぎわの申し込みを、保存し損ねない）。
       await new Promise<void>((resolve) => {
         const timer = setTimeout(() => {
           server.closeAllConnections();
@@ -119,6 +119,7 @@ export async function startServer(options: StartOptions): Promise<RunningServer>
         });
         server.closeIdleConnections();
       });
+      await writer?.flush();
     },
   };
 }

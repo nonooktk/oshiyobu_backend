@@ -1,4 +1,4 @@
-import { createServer } from 'node:net';
+import { connect, createServer } from 'node:net';
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -76,6 +76,27 @@ describe('サーバーの起動と終了', () => {
       counted: false,
       joined: 1,
     });
+  });
+
+  it('終了の合図のあとに済んだ申し込みも、保存される（接続を止め、つながっている要求が済んでから、保存を書く）', async () => {
+    const server = await start({ DATA_DIR: root });
+    // 本文がまだ届いていない要求を 1 つ、つないだままにする（この要求が済むまで、サーバーの終了は完了しない）
+    const socket = connect(server.port, '127.0.0.1');
+    await new Promise<void>((resolve) => socket.once('connect', resolve));
+    socket.write(
+      `POST /api/v1/performances/${PID}/joins HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\n`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const closing = server.close();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // 終了の合図のあとに、つながっていた要求が済んで、1 件数えた（保存を先に書いてしまうと、この 1 件を書き損ねる）
+    server.store.join(PID, 'a1b2c3d4e5f60718');
+    socket.destroy();
+    await closing;
+    const saved = JSON.parse(await readFile(join(root, 'meter.json'), 'utf8')) as {
+      performances: Record<string, { ids: string[] }>;
+    };
+    expect(saved.performances[PID]?.ids).toEqual(['a1b2c3d4e5f60718']);
   });
 
   it('保存先を作れないときは、警告を出して、保存なしで動く（落ちない。I-130 (c)）', async () => {
