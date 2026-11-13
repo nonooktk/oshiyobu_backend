@@ -9,15 +9,16 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write src tests scripts eslint.config.js vitest.config.ts",
-    "format:check": "prettier --check src tests scripts eslint.config.js vitest.config.ts",
+    "format": "prettier --write src tests scripts loadtest eslint.config.js vitest.config.ts",
+    "format:check": "prettier --check src tests scripts loadtest eslint.config.js vitest.config.ts",
     "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run",
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify.mjs",
     "package": "node scripts/package.mjs",
     "start": "node dist/server/server.mjs",
-    "check:secrets": "node scripts/check-no-secrets.mjs"
+    "check:secrets": "node scripts/check-no-secrets.mjs",
+    "loadtest": "node loadtest/n22-node.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

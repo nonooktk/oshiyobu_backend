@@ -85,5 +85,12 @@ export default tseslint.config(
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
   },
+  {
+    // 負荷の試験の台本。型は tsconfig.loadtest.json（k6 の型つき）で別に検査する。
+    // n22.js は k6 の中で動く（k6 のグローバル __ENV と console）。n22-node.mjs は Node で動く。
+    files: ['loadtest/**/*.{js,mjs}'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { ...globals.node, __ENV: 'readonly' } },
+  },
   prettier,
 );
