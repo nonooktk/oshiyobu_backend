@@ -1,11 +1,12 @@
-// ビルド。いまは「src/core/ が、外部に依存せず、ブラウザ向けに 1 つに束ねられること」の確認だけを行う。
-//   - core は配布物にしない（frontend はソースを `src/core/` にそのまま置く。設計 D-07）。
-//     束ねた dist/core.mjs は、確認のための出力（Git 管理外）。
-//   - platform を browser にするので、`node:fs` などの Node 専用モジュールを import していると、ここで失敗する。
-//   - 束ねたファイルの入力が、すべて src/core/ の中にあることも確かめる（外部パッケージへの依存を 0 に保つ）。
-// API（サーバー）の束ね（esbuild で server.mjs 1 ファイル。設計 D-02）は、B-2 で足す。
+// ビルド。次の 2 つを行う。
+//   1. core の確認: `src/core/` が、外部に依存せず、ブラウザ向けに 1 つに束ねられること（dist/core.mjs。確認のための出力で、
+//      配布物ではない。frontend はソースを `src/core/` にそのまま置く。設計 D-07）。platform を browser にするので、
+//      `node:fs` などの Node 専用モジュールを import していると、ここで失敗する。
+//   2. API の束ね: `src/server/index.ts` を 1 ファイル（dist/server/server.mjs）にする（設計 D-02・D-23）。
+//      配備物は、これと package.json（type だけ）の zip（npm run package）。
 import { build } from 'esbuild';
 import { statSync } from 'node:fs';
+import { bundleServer } from './lib/server-bundle.mjs';
 
 const result = await build({
   entryPoints: ['src/core/index.ts'],
@@ -29,4 +30,9 @@ const inputs = Object.keys(result.metafile.inputs).length;
 const bytes = statSync('dist/core.mjs').size;
 console.log(
   `core を束ねました: dist/core.mjs（入力 ${inputs} ファイル・${bytes} バイト）。外部への依存は 0 件`,
+);
+
+const server = await bundleServer({ outDir: 'dist/server' });
+console.log(
+  `API を束ねました: dist/server/server.mjs（入力 ${server.inputs.length} ファイル・${server.bytes} バイト）。外部の import は node: の組み込みだけ`,
 );

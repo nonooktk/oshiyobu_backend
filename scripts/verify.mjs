@@ -3,7 +3,7 @@
 import { spawnSync } from 'node:child_process';
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const steps = ['lint', 'format:check', 'typecheck', 'test', 'build'];
+const steps = ['lint', 'format:check', 'check:secrets', 'typecheck', 'test', 'build'];
 
 for (const step of steps) {
   console.log(`\n=== npm run ${step} ===`);

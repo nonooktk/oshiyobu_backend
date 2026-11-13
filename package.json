@@ -14,7 +14,10 @@
     "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run",
     "build": "node scripts/build.mjs",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "package": "node scripts/package.mjs",
+    "start": "node dist/server/server.mjs",
+    "check:secrets": "node scripts/check-no-secrets.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
