@@ -4,6 +4,7 @@ import {
   PERFORMANCE_IDS,
   isPerformanceId,
   isValidDeviceId,
+  parseApiErrorResponse,
   parseJoinResponse,
   parseMeterResponse,
   parseResetResponse,
@@ -169,16 +170,58 @@ describe('初期化の応答の検査 parseResetResponse', () => {
 });
 
 describe('エラーの種類', () => {
-  it('API のエラーの種類は、設計 D-13 に出てくる 6 つ', () => {
+  it('API のエラーの種類は、設計 D-13 の 6 つと、B-2 で足した 4 つ（413・415・知らない道・想定外）', () => {
     expect([...API_ERROR_CODES].sort()).toEqual(
       [
+        // 設計 D-13
         'cap_reached',
         'invalid_body',
         'not_configured',
         'rate_limited',
         'unauthorized',
         'unknown_performance',
+        // B-2 で足した（413・415・知らない道・想定外の失敗）
+        'internal_error',
+        'not_found',
+        'payload_too_large',
+        'unsupported_media_type',
       ].sort(),
     );
+  });
+});
+
+describe('エラーの応答の検査 parseApiErrorResponse', () => {
+  it('error が決まった種類のとき受ける。知らない項目は捨てる', () => {
+    expect(parseApiErrorResponse({ error: 'unauthorized' })).toEqual({ error: 'unauthorized' });
+    expect(parseApiErrorResponse({ error: 'rate_limited', extra: 1 })).toEqual({
+      error: 'rate_limited',
+    });
+  });
+
+  it('上限（cap_reached）は、公演の joined を添える（0 以上の整数）', () => {
+    expect(parseApiErrorResponse({ error: 'cap_reached', joined: 500 })).toEqual({
+      error: 'cap_reached',
+      joined: 500,
+    });
+    // joined が無い・形が違うときも、種類は読める（joined だけ捨てる）
+    expect(parseApiErrorResponse({ error: 'cap_reached' })).toEqual({ error: 'cap_reached' });
+    expect(parseApiErrorResponse({ error: 'cap_reached', joined: -1 })).toEqual({
+      error: 'cap_reached',
+    });
+    expect(parseApiErrorResponse({ error: 'cap_reached', joined: '500' })).toEqual({
+      error: 'cap_reached',
+    });
+  });
+
+  it.each([
+    ['null', null],
+    ['文字列', 'unauthorized'],
+    ['配列', [{ error: 'unauthorized' }]],
+    ['error が無い', {}],
+    ['知らない種類', { error: 'teapot' }],
+    ['error が文字列でない', { error: 401 }],
+    ['プロトタイプから受け継いだ error', Object.create({ error: 'unauthorized' }) as unknown],
+  ])('型が違う応答は無視する（null）: %s', (_label, value) => {
+    expect(parseApiErrorResponse(value)).toBeNull();
   });
 });
