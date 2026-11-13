@@ -1,4 +1,3 @@
-import { ARTIST_IDS } from '../types';
 import type { ArtistId } from '../types';
 
 /** 熱量 × 資金の散布図の 4 象限。 */
@@ -92,9 +91,4 @@ export function artistById(id: ArtistId): ArtistData {
     throw new RangeError(`知らないアーティストです: ${id}`);
   }
   return artist;
-}
-
-/** 文字列がアーティストの ID か。 */
-export function isArtistId(value: string): value is ArtistId {
-  return (ARTIST_IDS as readonly string[]).includes(value);
 }

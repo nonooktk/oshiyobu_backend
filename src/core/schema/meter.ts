@@ -54,7 +54,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** 自分の項目だけを読む（プロトタイプから受け継いだ項目は数えない）。 */
 function own(record: Record<string, unknown>, key: string): unknown {
-  return Object.hasOwn(record, key) ? record[key] : undefined;
+  return Object.prototype.hasOwnProperty.call(record, key) ? record[key] : undefined;
 }
 
 function isIsoTime(value: unknown): value is string {

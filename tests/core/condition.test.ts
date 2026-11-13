@@ -55,21 +55,9 @@ describe('会場 12 件の表（仕様 SP-19。tech0 での検算）', () => {
   );
 });
 
-describe('基準の組み合わせ（tech0・久留米市・Cボックス。仕様「検算」）', () => {
+// 到達ライン・必要人数・見込み・札・初めの支援者の検算は golden.test.ts。ここは、コースの金額・枠と上乗せの内訳。
+describe('基準の組み合わせの、応援コースと上乗せ（tech0・久留米市・Cボックス）', () => {
   const cond = conditionOf('cbox');
-
-  it('到達ライン 650,000円・価格 7,000円・必要人数 93人・最低人数 93人・初めの支援者 74人', () => {
-    expect(cond.line).toBe(650_000);
-    expect(cond.price).toBe(7_000);
-    expect(cond.need).toBe(93);
-    expect(cond.min).toBe(93);
-    expect(cond.start).toBe(74);
-  });
-
-  it('見込み 187人・札「高」', () => {
-    expect(demandOf('tech0', '久留米市').expected).toBe(187);
-    expect(levelOf(187, cond.need)).toBe('高');
-  });
 
   it('応援コース 4 つの金額と枠（前方 21,000円・14席。通常はキャパまで）', () => {
     expect(cond.courses.map(({ id, price, slots, unit }) => ({ id, price, slots, unit }))).toEqual([

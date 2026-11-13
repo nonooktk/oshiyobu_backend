@@ -42,14 +42,18 @@ export interface MeterState {
   readonly pseudoFriends: number;
 }
 
+/** ほかの端末の人数 ＝ max(0, サーバーの件数 − （自分が数えられていれば 1））。 */
+function othersCount(state: MeterState): number {
+  return Math.max(0, state.serverJoined - (state.counted ? 1 : 0));
+}
+
 /**
  * 表示する人数（支援者）＝ 初めの支援者 ＋ ほかの端末の人数 ＋ 自分の申し込み ＋ 擬似の仲間。
  * ほかの端末の人数 ＝ max(0, サーバーの件数 − （自分が数えられていれば 1））。
  * 申し込みをやめても、サーバーは減らさない（決定 3）ので、数えられた印は残り、自分の分だけ −1 になる。
  */
 export function displayedCount(start: number, state: MeterState): number {
-  const others = Math.max(0, state.serverJoined - (state.counted ? 1 : 0));
-  return start + others + (state.joined ? 1 : 0) + state.pseudoFriends;
+  return start + othersCount(state) + (state.joined ? 1 : 0) + state.pseudoFriends;
 }
 
 /** 成立の判定に使う、この端末の状態。 */
@@ -93,9 +97,8 @@ export function supportStatus(
 ): SupportStatus {
   const { start, price, line, min } = condition;
   const supporters = displayedCount(start, state);
-  const others = Math.max(0, state.serverJoined - (state.counted ? 1 : 0));
   const total =
-    (start + others) * price +
+    (start + othersCount(state)) * price +
     (state.joined ? state.myCoursePrice : 0) +
     state.pseudoFriends * price;
   const peopleOk = supporters >= min;

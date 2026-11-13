@@ -116,6 +116,8 @@ export function conditionOf(venueId: VenueId, input: ConditionInput = {}): Condi
   const costs = input.costs ?? costsOfTier(venue.tier);
   const line = lineOf(costs);
   const need = needOf(line, price);
+  // 初めの支援者は、会場の標準の費用から決める。費用を書き換えても変えない（設計 D-44）。
+  const standardNeed = needOf(lineOf(costsOfTier(venue.tier)), price);
   const manualMin = input.minPeople ?? null;
   if (manualMin !== null && !(Number.isInteger(manualMin) && manualMin >= 1)) {
     throw new RangeError(`最低人数は 1 以上の整数です（受け取った値: ${manualMin}）`);
@@ -129,7 +131,7 @@ export function conditionOf(venueId: VenueId, input: ConditionInput = {}): Condi
     line,
     need,
     min: manualMin ?? defaultMinPeople(need),
-    start: startSupporters(needOf(lineOf(costsOfTier(venue.tier)), price)),
+    start: startSupporters(standardNeed),
     courses: courseOffersOf(venueId),
   };
 }

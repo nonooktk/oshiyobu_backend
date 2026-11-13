@@ -247,7 +247,8 @@ describe('人物の番号の決め方 personaNoOf（決定 2・6。仕様 SP-60�
     const counts = new Array<number>(16).fill(0);
     for (let i = 0; i < 10_000; i++) {
       const uuid = `${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}`;
-      counts[personaNoOf(uuid)] = (counts[personaNoOf(uuid)] ?? 0) + 1;
+      const no = personaNoOf(uuid);
+      counts[no] = (counts[no] ?? 0) + 1;
     }
     expect(counts[0]).toBe(0); // 0 番は出ない
     for (let no = 1; no <= 15; no++) {

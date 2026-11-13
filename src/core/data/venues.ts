@@ -1,5 +1,4 @@
 import type { CityName, CostTier, VenueId } from '../types';
-import { VENUE_IDS } from '../types';
 
 export interface Venue {
   readonly id: VenueId;
@@ -164,18 +163,13 @@ export const VENUES: readonly Venue[] = [
   },
 ];
 
-/** 会場の ID から会場を返す。知らない ID は例外（型で防げない文字列の入口では isVenueId を使う）。 */
+/** 会場の ID から会場を返す。知らない ID は例外。 */
 export function venueById(id: VenueId): Venue {
   const venue = VENUES.find((item) => item.id === id);
   if (venue === undefined) {
     throw new RangeError(`知らない会場です: ${id}`);
   }
   return venue;
-}
-
-/** 文字列が会場 ID か。 */
-export function isVenueId(value: string): value is VenueId {
-  return (VENUE_IDS as readonly string[]).includes(value);
 }
 
 /** 市の会場候補（VENUES の並び順）。 */
