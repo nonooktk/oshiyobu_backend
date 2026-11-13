@@ -1,6 +1,6 @@
 import { COURSES } from '../data/courses';
 import type { CourseDef } from '../data/courses';
-import { venueById, VENUES } from '../data/venues';
+import { venueById, venuesOf } from '../data/venues';
 import type { Venue } from '../data/venues';
 import { COST } from '../data/costs';
 import { HOME_CITY, HOME_VENUE_ID, MILESTONE } from '../data/constants';
@@ -157,16 +157,15 @@ export function upliftOf(condition: Pick<Condition, 'price' | 'courses'>): Uplif
 
 /**
  * 市を変えたときの会場。久留米市は Cボックス、ほかは tech0 の見込みにキャパが最も近い 1 件（仕様 SP-49）。
- * 同じだけ近いときは、VENUES の並びで先の会場。
+ * 同じだけ近いときは、会場の並びで先の会場。
  */
 export function defaultVenueIdOf(city: CityName): VenueId {
   if (city === HOME_CITY) {
     return HOME_VENUE_ID;
   }
   const expected = demandOf('tech0', city).expected;
-  const candidates = VENUES.filter((venue) => venue.city === city);
   let best: Venue | undefined;
-  for (const venue of candidates) {
+  for (const venue of venuesOf(city)) {
     if (best === undefined || Math.abs(venue.cap - expected) < Math.abs(best.cap - expected)) {
       best = venue;
     }
