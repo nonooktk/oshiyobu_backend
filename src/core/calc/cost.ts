@@ -2,6 +2,12 @@ import { COST } from '../data/costs';
 import { COST_ITEM_IDS } from '../types';
 import type { CostItemId, CostTier } from '../types';
 
+/**
+ * 費用 1 項目の上限（円）。仕様は「上限は置かない」（SP-71）が、5 項目の合計を安全な整数で正確に足せる大きさまでとする。
+ * 約 1.8 千兆円で、実際の入力では当たらない。
+ */
+export const MAX_COST_YEN = Math.floor(Number.MAX_SAFE_INTEGER / COST_ITEM_IDS.length);
+
 /** 費用 5 項目の金額（円）。「条件を調整」の入力値もこの形。 */
 export type CostValues = Readonly<Record<CostItemId, number>>;
 
@@ -28,9 +34,20 @@ export function costItems(costs: CostValues): readonly CostItem[] {
   return COST_ITEM_IDS.map((id) => ({ id, yen: costs[id] }));
 }
 
-/** 到達ライン ＝ 5 項目の合計（円）。 */
+/**
+ * 到達ライン ＝ 5 項目の合計（円）。
+ * 各項目は 0 以上 MAX_COST_YEN 以下の整数だけ受ける（parseCost の結果を渡す）。それ以外は、数字のずれにせず、例外にする。
+ */
 export function lineOf(costs: CostValues): number {
-  return costItems(costs).reduce((sum, item) => sum + item.yen, 0);
+  const items = costItems(costs);
+  for (const item of items) {
+    if (!Number.isInteger(item.yen) || item.yen < 0 || item.yen > MAX_COST_YEN) {
+      throw new RangeError(
+        `費用は 0 以上の整数（${MAX_COST_YEN} 以下）です（${item.id}: ${item.yen}）`,
+      );
+    }
+  }
+  return items.reduce((sum, item) => sum + item.yen, 0);
 }
 
 /**

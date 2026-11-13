@@ -7,6 +7,7 @@ import {
   costsOfTier,
   defaultMinPeople,
   lineOf,
+  MAX_COST_YEN,
   needOf,
 } from '../../src/core';
 
@@ -55,6 +56,27 @@ describe('到達ラインの内訳 5 項目（決定 9。仕様 SP-07・I-11）'
     const edited = { ...costsOfTier(100), venue: 100_000 };
     expect(costItems(edited).find((item) => item.id === 'venue')?.yen).toBe(100_000);
     expect(lineOf(edited)).toBe(690_000);
+  });
+});
+
+describe('費用の値の検査（呼ぶ側の誤りを、数字のずれにしない）', () => {
+  const base = costsOfTier(100);
+
+  it.each([
+    ['負の数', -1],
+    ['小数', 1.5],
+    ['NaN', Number.NaN],
+    ['無限大', Number.POSITIVE_INFINITY],
+    ['上限を 1 円超える', MAX_COST_YEN + 1],
+  ])('費用に %s が入っていたら、到達ラインを出さずに例外にする', (_label, bad) => {
+    expect(() => lineOf({ ...base, venue: bad })).toThrow(RangeError);
+  });
+
+  it('境界: 0 円と、上限ちょうどは受ける', () => {
+    expect(lineOf({ ...base, venue: 0 })).toBe(590_000);
+    expect(lineOf({ venue: MAX_COST_YEN, prod: 0, fee: 0, travel: 0, profit: 0 })).toBe(
+      MAX_COST_YEN,
+    );
   });
 });
 

@@ -26,12 +26,20 @@ export {
 } from './data/constants';
 
 // 計算
-export { costItems, costsOfTier, defaultMinPeople, lineOf, needOf } from './calc/cost';
+export {
+  MAX_COST_YEN,
+  costItems,
+  costsOfTier,
+  defaultMinPeople,
+  lineOf,
+  needOf,
+} from './calc/cost';
 export type { CostItem, CostValues } from './calc/cost';
 export {
   conditionOf,
   courseOffersOf,
   defaultVenueIdOf,
+  exceedsCapacity,
   startSupporters,
   upliftOf,
 } from './calc/condition';
@@ -48,7 +56,7 @@ export {
   supportStatus,
 } from './calc/meter';
 export type { MeterState, SupportState, SupportStatus } from './calc/meter';
-export { MAX_COST_YEN, parseCost, parseMinPeople } from './calc/parse';
+export { parseCost, parseMinPeople } from './calc/parse';
 export type { ParseResult } from './calc/parse';
 export { canApply, depShort, mainShort, nextDepositTarget, restParts } from './calc/course';
 export type { RestPart } from './calc/course';

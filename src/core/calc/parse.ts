@@ -1,4 +1,4 @@
-import { COST_ITEM_IDS } from '../types';
+import { MAX_COST_YEN } from './cost';
 
 /** 入力の検査の結果。理由の文言は frontend の仕事（core は理由の種類と、文言に写す値を返す）。 */
 export type ParseResult =
@@ -12,12 +12,6 @@ export type ParseResult =
       readonly value: number;
     }
   | { readonly ok: false; readonly reason: 'too_large'; readonly input: string };
-
-/**
- * 費用 1 項目の上限（円）。仕様は「上限は置かない」（SP-71）が、5 項目の合計を安全な整数で正確に足せる大きさまでとする。
- * 約 1.8 千兆円で、実際の入力では当たらない。
- */
-export const MAX_COST_YEN = Math.floor(Number.MAX_SAFE_INTEGER / COST_ITEM_IDS.length);
 
 /** 全角の数字（０〜９）を半角に直し、前後の空白（全角を含む）を取る。 */
 function normalize(input: string): string {

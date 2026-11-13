@@ -136,6 +136,11 @@ export function conditionOf(venueId: VenueId, input: ConditionInput = {}): Condi
   };
 }
 
+/** 必要人数が会場のキャパを超えるか（費用を上げたとき。警告を出す。提案の可否は札だけで決める。仕様 SP-72・A3）。 */
+export function exceedsCapacity(condition: Pick<Condition, 'need' | 'venue'>): boolean {
+  return condition.need > condition.venue.cap;
+}
+
 /** 上位コースの上乗せ。通常の席以外の各コースの (金額 − 通常の席の価格) × 枠 と、その合計（仕様 SP-14）。 */
 export function upliftOf(condition: Pick<Condition, 'price' | 'courses'>): Uplift {
   const rows = condition.courses

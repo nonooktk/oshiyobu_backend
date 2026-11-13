@@ -4,6 +4,7 @@ import {
   courseOffersOf,
   defaultVenueIdOf,
   demandOf,
+  exceedsCapacity,
   levelOf,
   shortfallOf,
   upliftOf,
@@ -114,6 +115,32 @@ describe('条件の書き換え（「条件を調整」。仕様 SP-05・SP-06�
   it('最低人数に 1 未満・小数が渡されたら例外にする（入力の検査は parseMinPeople の仕事）', () => {
     expect(() => conditionOf('cbox', { minPeople: 0 })).toThrow(RangeError);
     expect(() => conditionOf('cbox', { minPeople: 1.5 })).toThrow(RangeError);
+  });
+});
+
+describe('必要人数がキャパを超えるか（仕様 SP-72。費用を上げたとき）', () => {
+  // キャパ 144・価格 7,000円。出演料以外は基準のまま（60,000 + 100,000 + 120,000 + 120,000 = 400,000円）。
+  const withFee = (fee: number) => {
+    const base = conditionOf('cbox');
+    return conditionOf('cbox', { costs: { ...base.costs, fee } });
+  };
+
+  it('基準（必要人数 93人）は、キャパ 144席に収まる', () => {
+    expect(exceedsCapacity(conditionOf('cbox'))).toBe(false);
+  });
+
+  it('境界: 出演料 608,000円 → 到達ライン 1,008,000円 → ちょうど 144人でキャパに収まる。1 円上げると 145人で超える', () => {
+    expect(withFee(608_000).need).toBe(144);
+    expect(exceedsCapacity(withFee(608_000))).toBe(false);
+    expect(withFee(608_001).need).toBe(145);
+    expect(exceedsCapacity(withFee(608_001))).toBe(true);
+  });
+
+  it('警告を出しても、札は必要人数と見込みだけで決まる（提案の可否は変わらない。A3）', () => {
+    const cond = withFee(700_000); // 到達ライン 1,100,000円 → 必要人数 158人
+    expect(cond.need).toBe(158);
+    expect(exceedsCapacity(cond)).toBe(true);
+    expect(levelOf(187, cond.need)).toBe('中'); // 187 ÷ 158 ＝ 1.18
   });
 });
 
