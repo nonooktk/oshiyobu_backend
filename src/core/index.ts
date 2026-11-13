@@ -56,3 +56,23 @@ export { REG_MAX, colorStep, metricValues, radiusOf } from './calc/map';
 export type { ColorStep } from './calc/map';
 export { areaFor } from './calc/area';
 export type { AreaCity, AreaPref } from './calc/area';
+export { PERSONAS, PERSONA_COUNT, PERSONA_DEFAULT_NO, personaByNo } from './data/personas';
+export type { Persona } from './data/personas';
+export {
+  fnv1a32,
+  personaNoFromParam,
+  personaNoOf,
+  personaPerformanceId,
+  personaVenueId,
+  resolvePersonaNo,
+} from './calc/persona';
+export { PERFORMANCE_IDS, isPerformanceId, performanceIdOf } from './schema/performance';
+export {
+  API_ERROR_CODES,
+  DEVICE_ID_PATTERN,
+  isValidDeviceId,
+  parseJoinResponse,
+  parseMeterResponse,
+  parseResetResponse,
+} from './schema/meter';
+export type { ApiErrorCode, JoinResponse, MeterResponse, ResetResponse } from './schema/meter';
