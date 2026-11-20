@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ARTIST_IDS,
+  CITY_NAMES,
+  artistById,
   conditionOf,
   courseOffersOf,
   defaultVenueIdOf,
   demandOf,
   exceedsCapacity,
   levelOf,
+  metricValues,
   shortfallOf,
   upliftOf,
   venueById,
 } from '../../src/core';
-import type { Level, VenueId } from '../../src/core';
+import type { Level, QuadKey, VenueId } from '../../src/core';
 
 // 期待値の出どころ: 仕様.md「データ > 固定のデータ（SP-19）> 会場 12 件」の表（書記の検算つき）と「検算（基準の組み合わせ）」。
 // 表の列: 会場 ID・キャパ・区分・到達ライン・必要人数・初めの支援者・前方の席の席数・上乗せ・tech0 の見込み・札。
@@ -208,48 +212,149 @@ describe('応援コース（仕様 SP-19「コース 4 つ」・決定 15）', (
 });
 
 describe('需要（市 × 組。仕様 SP-13・SP-18）', () => {
-  it('5 組の久留米市の見込みは 187・120・96・45・66、1 点あたりの人数は 3・6・2・3・2', () => {
+  it('5 組の久留米市の見込みは 187・120・96・45・66、1 点あたりの人数は 10・30・5・10・3', () => {
+    // 2026-11-20、backend Issue #1。4象限の合計を登録者数に合わせた。
+    // 1 点あたりの人数は、データの値（3・6・2・3・2）ではなく、登録者数（1,380・4,100・680・1,490・380）から選ぶ。
     expect(
       (['tech0', 'krs48', 'riji', 'terao', 'heisei'] as const).map((id) => {
         const demand = demandOf(id, '久留米市');
         return [demand.expected, demand.perDot];
       }),
     ).toEqual([
-      [187, 3],
-      [120, 6],
-      [96, 2],
-      [45, 3],
-      [66, 2],
+      [187, 10],
+      [120, 30],
+      [96, 5],
+      [45, 10],
+      [66, 3],
     ]);
   });
 
-  it('tech0・福岡市: 久留米市の人数 ×（登録者 × 熱量の比）を丸める。1 点 5 人（点が 150 以内になる最小の刻み）', () => {
-    // 比 = (4,820 × 41) ÷ (1,380 × 86) ≒ 1.665。187 → 311、54 → 90、42 → 70、24 → 40（合計 511 → 5 人で 103 点）。
+  it('tech0・福岡市: hotRich は久留米市の値 ×（登録者 × 熱量の比）を丸める。残りは登録者数から引いて配る。1 点 50 人（点が 150 以内になる最小の刻み）', () => {
+    // 2026-11-20、backend Issue #1。4象限の合計を登録者数に合わせた。
+    // 比 = (4,820 × 41) ÷ (1,380 × 86) ≒ 1.665。hotRich 187 → 311。残り 4,820 − 311 = 4,509 を 54 : 42 : 24 で配る。
+    // 2029.05・1578.15・901.8 → 切り捨てて 2029・1578・901（足りない 1 人は、端数の大きい coolPoor へ）。
+    // 登録者数 4,820 → 30 人で 160.7 点（150 超）、50 人で 96.4 点。
     const demand = demandOf('tech0', '福岡市');
-    expect(demand.people).toEqual({ hotRich: 311, hotPoor: 90, coolRich: 70, coolPoor: 40 });
-    expect(demand.perDot).toBe(5);
+    expect(demand.people).toEqual({ hotRich: 311, hotPoor: 2029, coolRich: 1578, coolPoor: 902 });
+    expect(demand.perDot).toBe(50);
     expect(demand.seed).toBe(20261120 + 7919);
   });
 
-  it('久留米市以外では、全組・全市で点が 150 以内になり、刻みは最小（I-12）', () => {
-    const steps = [1, 2, 3, 5, 6, 10, 15, 20, 30, 50];
-    for (const artist of ['tech0', 'krs48', 'riji', 'terao', 'heisei'] as const) {
-      for (const city of [
-        '福岡市',
-        '北九州市',
-        '佐賀市',
-        '長崎市',
-        '熊本市',
-        '大分市',
-        '宮崎市',
-        '鹿児島市',
-      ] as const) {
-        const { people, perDot } = demandOf(artist, city);
-        const total = Object.values(people).reduce((sum, n) => sum + n, 0);
-        expect(total / perDot).toBeLessThanOrEqual(150);
-        const smaller = steps.filter((step) => step < perDot);
-        for (const step of smaller) expect(total / step).toBeGreaterThan(150);
+  it.each([
+    // 並びは hotRich／hotPoor／coolRich／coolPoor。heisei・福岡市は、修正前は 273 + 37 + 25 + 12 = 347 人（登録 1,500 人）だった。
+    ['tech0', '久留米市', [187, 537, 417, 239]],
+    ['tech0', '福岡市', [311, 2029, 1578, 902]],
+    ['heisei', '福岡市', [273, 614, 409, 204]],
+    ['krs48', '福岡市', [547, 817, 8992, 11444]],
+  ] as const)(
+    '%s・%s: hotRich／hotPoor／coolRich／coolPoor ＝ %j（合計は登録者数）',
+    (artist, city, [hotRich, hotPoor, coolRich, coolPoor]) => {
+      expect(demandOf(artist, city).people).toEqual({ hotRich, hotPoor, coolRich, coolPoor });
+    },
+  );
+});
+
+describe('4 象限の人数と 1 点あたりの人数（45 通り ＝ 5 組 × 9 市。backend Issue #1）', () => {
+  // 各組の久留米市の hotRich（仕様 SP-19。払える熱いファンの見込み）。demandOf の中の計算とは別に、ここで比を計算して照合する。
+  const BASE_HOT_RICH = { tech0: 187, krs48: 120, riji: 96, terao: 45, heisei: 66 } as const;
+  // 1 点あたりの人数の刻み（設計の決め。demandOf の中の配列とは別に持つ）。
+  const DOT_STEPS = [1, 2, 3, 5, 6, 10, 15, 20, 30, 50, 100, 150, 200];
+  const baseIndex = CITY_NAMES.indexOf('久留米市');
+  const cases = ARTIST_IDS.flatMap((artist) =>
+    CITY_NAMES.map((city, index) => ({ artist, city, index })),
+  );
+
+  const at = (values: readonly number[], index: number): number => {
+    const value = values[index];
+    if (value === undefined) throw new RangeError(`添字が範囲の外です: ${index}`);
+    return value;
+  };
+
+  it('組み合わせは 45 通り', () => {
+    expect(cases).toHaveLength(45);
+  });
+
+  it.each(cases)(
+    '$artist・$city: 4 つの合計 ＝ 登録者数、hotRich は比で丸めた値、刻みは最小（I-12）',
+    ({ artist, city, index }) => {
+      const reg = metricValues(artist, 'reg');
+      const hot = metricValues(artist, 'hot');
+      const ratio = (at(reg, index) * at(hot, index)) / (at(reg, baseIndex) * at(hot, baseIndex));
+      const hotRich = Math.round(BASE_HOT_RICH[artist] * ratio);
+
+      const { people, expected, perDot } = demandOf(artist, city);
+      const counts = [people.hotRich, people.hotPoor, people.coolRich, people.coolPoor];
+      const total = counts.reduce((sum, n) => sum + n, 0);
+
+      expect(total).toBe(at(reg, index));
+      expect(people.hotRich).toBe(hotRich);
+      expect(expected).toBe(hotRich);
+      for (const count of counts) {
+        expect(Number.isInteger(count)).toBe(true);
+        expect(count).toBeGreaterThanOrEqual(0);
       }
-    }
+
+      expect(DOT_STEPS).toContain(perDot);
+      expect(total / perDot).toBeLessThanOrEqual(150);
+      for (const step of DOT_STEPS.filter((s) => s < perDot)) {
+        expect(total / step).toBeGreaterThan(150);
+      }
+    },
+  );
+
+  describe('配り方の決まり（データを一時的に差し替えて確かめる。heisei・福岡市 ＝ 登録 1,500 人・比 ≒ 4.135）', () => {
+    // 比 = (1,500 × 66) ÷ (380 × 63) = 99,000 ÷ 23,940 ≒ 4.1353。
+    // 基準の市のデータを差し替えて demandOf を呼び、終わったら（例外でも）元に戻す。
+    const demandWith = (people: Readonly<Record<QuadKey, number>>) => {
+      const quad = artistById('heisei').quad;
+      const original = quad.people;
+      Object.assign(quad, { people });
+      try {
+        return demandOf('heisei', '福岡市');
+      } finally {
+        Object.assign(quad, { people: original });
+      }
+    };
+
+    it('端数が同じなら hotPoor → coolRich → coolPoor の順に 1 人ずつ足す', () => {
+      // 基準の hotRich 67 → 67 × 4.1353 ≒ 277。残り 1,500 − 277 = 1,223 を 1 : 1 : 1 で配る → 407 ずつ（1,221）で 2 人足りない。
+      expect(demandWith({ hotRich: 67, hotPoor: 1, coolRich: 1, coolPoor: 1 }).people).toEqual({
+        hotRich: 277,
+        hotPoor: 408,
+        coolRich: 408,
+        coolPoor: 407,
+      });
+      // 基準の hotRich 68 → 68 × 4.1353 ≒ 281。残り 1,219 → 406 ずつ（1,218）で 1 人足りない。
+      expect(demandWith({ hotRich: 68, hotPoor: 1, coolRich: 1, coolPoor: 1 }).people).toEqual({
+        hotRich: 281,
+        hotPoor: 407,
+        coolRich: 406,
+        coolPoor: 406,
+      });
+    });
+
+    it('3 つの比の合計が 0 のとき、残りをすべて coolPoor へ', () => {
+      expect(demandWith({ hotRich: 66, hotPoor: 0, coolRich: 0, coolPoor: 0 }).people).toEqual({
+        hotRich: 273,
+        hotPoor: 0,
+        coolRich: 0,
+        coolPoor: 1227,
+      });
+    });
+
+    it('hotRich が登録者数を超えて、残りが負になるときは RangeError', () => {
+      expect(() => demandWith({ hotRich: 66_000, hotPoor: 9, coolRich: 6, coolPoor: 3 })).toThrow(
+        RangeError,
+      );
+    });
+
+    it('差し替えたデータは元に戻る（以降のテストに影響しない）', () => {
+      expect(demandOf('heisei', '福岡市').people).toEqual({
+        hotRich: 273,
+        hotPoor: 614,
+        coolRich: 409,
+        coolPoor: 204,
+      });
+    });
   });
 });
